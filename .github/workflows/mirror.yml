@@ -1,0 +1,31 @@
+name: Mirror HR grid CSV
+
+on:
+  schedule:
+    - cron: '0 0 * * *'    # once a day, 00:00 UTC
+  workflow_dispatch:         # adds a manual "Run" button
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the published CSV from Google
+        run: |
+          curl -sL "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7ponkOlbS12YNgylFXSGCezfviD6AGBHE6xe2cIm5V9yxWh4EwklF4bsXykr4-0Cz9OinHO27rU72/pub?gid=0&single=true&output=csv" -o hr-grid.csv
+
+      - name: Commit only if the file changed
+        run: |
+          git config user.name  "hr-grid-bot"
+          git config user.email "actions@github.com"
+          if [ -n "$(git status --porcelain hr-grid.csv)" ]; then
+            git add hr-grid.csv
+            git commit -m "Update HR grid $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          else
+            echo "No changes."
+          fi
